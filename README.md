@@ -4,61 +4,41 @@ Simple & Fast Tool To Test Verb Tampering
 
 ## Run :
 ```shell
-# 1
+# Way 1
 go run main.go
 ```
 ```shell
-# 2
+# Way 2
 go build -ldflags "-w -s" main.go
 ./main
 ```
 
-## Arguments :
-```shell
-./main -h
+## Options :
+```yaml
+    -D string
+    URL Of Your Target Do You Want To Test
 ```
 ```yaml
--c : Set Cookie in Header
-  type   : string
-  defult : ""
-  status : optional
-  
--d : Set URL Of Your Target
-  type    : string
-  default : ""
-  status : required
-
--fc : Don't Match Response Code [use ',' To Split]
-  type    : string
-  default : ""
-  status : optional
-
--mc : Match Response Code [use ',' To Split]
-  type    : string
-  default : "*"
-  status : optional
-
--o : Set Output File
-  type    : string
-  default : ""
-  status : optional
-
--x : FUZZ Extra HTTP Methods
-  type    : bool
-  default : false
-  status : optional
+    -C string
+    Set Value Of Cookie Header
 ```
-
-## Example :
-```shell
-./main -d https://google.com/
+```yaml
+    -FC string
+    Don't Match Response Code [use ',' To Split]
 ```
-```shell
-./main -d https://google.com/ -fc 500
+```yaml
+    -MC string
+    Match Response Code [use ',' To Split]
 ```
-```shell
-./main -d https://google.com/ -x -mc 200 -c username=MostPow3rful
+```yaml
+    -O string
+    Name Of File To Set Result in it
 ```
-```shell
-./main -d https://google.com/ -x -mc 200,403 -o result.txt
+```yaml
+    -X bool
+    FUZZ Extra HTTP Methods
+```
+```yaml
+    -H string
+    Set Custom Headers To Test
 ```
