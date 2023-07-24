@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/corpix/uarand"
@@ -15,6 +16,7 @@ import (
 type Flag struct {
 	IgnoreResponse string
 	MatchResponse  string
+	CustomHeaders  string
 	Output         string
 	Target         string
 	Cookie         string
@@ -26,6 +28,7 @@ var (
 	flagInstance  = Flag{
 		IgnoreResponse: "",
 		MatchResponse:  "",
+		CustomHeaders:  "",
 		Output:         "",
 		Target:         "",
 		Cookie:         "",
@@ -53,6 +56,9 @@ func tamper(_httpMethod string) {
 	}
 
 	// Set HTTP Headers
+	for header, value := range customHeaders {
+		request.Header.Set(header, value)
+	}
 	if flagInstance.Cookie != "" {
 		request.Header.Set("Cookie", flagInstance.Cookie)
 	}
@@ -71,6 +77,7 @@ func tamper(_httpMethod string) {
 	// Close Response Body [defer]
 	defer response.Body.Close()
 
+	// if fc switch defined
 	if fc {
 		if strings.Index(flagInstance.IgnoreResponse, ",") == -1 {
 			code, _ := strconv.Atoi(flagInstance.IgnoreResponse)
@@ -87,6 +94,7 @@ func tamper(_httpMethod string) {
 		}
 	}
 
+	//if mc switch defined
 	if mc {
 		if strings.Index(flagInstance.MatchResponse, ",") == -1 {
 			code, _ := strconv.Atoi(flagInstance.MatchResponse)
@@ -103,11 +111,77 @@ func tamper(_httpMethod string) {
 		}
 	}
 
+	// if defined output file
 	if flagInstance.Output != "" {
 		setResultInFile(flagInstance.Output, response.Status, _httpMethod, response.StatusCode)
 		return
 	}
 	fmt.Printf("[%v] - [%d] - [%v]\n", _httpMethod, response.StatusCode, response.Status)
+}
+
+func parseCustomHeaders(_fileName string) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Couldn't Get Output Of PWD Command")
+		return
+	}
+
+	file, err := os.Open(fmt.Sprintf("%v/%v", pwd, _fileName))
+	if err != nil {
+		fmt.Printf("Couldn't Open Output File")
+		return
+	}
+	defer file.Close()
+
+	fileScanner := bufio.NewScanner(file)
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		line := fileScanner.Text()
+
+		if line == "" {
+			continue
+		}
+
+		if strings.HasPrefix(line, " ") {
+			line = line[1:]
+		}
+
+		// Empty Headers Only ?
+		if strings.Index(line, ":") == -1 {
+			if strings.HasSuffix(line, " ") {
+				customHeaders[line[0:strings.Index(line, " ")]] = "127.0.0.1"
+				continue
+			}
+
+			customHeaders[line] = "127.0.0.1"
+			continue
+		}
+
+		// Header And Defined Value
+		if strings.Index(line, ":") != -1 {
+			if strings.HasSuffix(line, " ") {
+				line = line[0:strings.Index(line, " ")]
+			}
+
+			data := strings.Split(line, ":")
+			if data[0] == "" {
+				continue
+			}
+			if data[1] == "" {
+				data[1] = "127.0.0.1"
+			}
+
+			if strings.HasSuffix(data[0], " ") {
+				data[0] = data[0][0:strings.LastIndex(data[0], " ")]
+			}
+			if strings.HasPrefix(data[1], " ") {
+				data[1] = data[1][strings.LastIndex(data[1], " ")+1:]
+			}
+			customHeaders[data[0]] = data[1]
+		}
+	}
+
 }
 
 func createFile(_fileName string) {
@@ -130,6 +204,8 @@ func setResultInFile(_fileName, _httpMethod, _statusMessage string, _statusCode 
 		fmt.Printf("Couldn't Open Output File")
 		return
 	}
+	defer outputFile.Close()
+
 	outputFile.WriteString(fmt.Sprintf("[%v] - [%d] - [%v]\n", _httpMethod, _statusCode, _statusMessage))
 }
 
@@ -207,25 +283,30 @@ func main() {
 	flag.StringVar(&flagInstance.IgnoreResponse, "fc", "", "Don't Match Response Code [use ',' To Split]")
 	flag.StringVar(&flagInstance.MatchResponse, "mc", "", "Match Response Code [use ',' To Split]")
 	flag.StringVar(&flagInstance.Target, "d", "", "URL Of Your Target Do You Want To Test")
+	flag.StringVar(&flagInstance.CustomHeaders, "h", "", "Set Custom Headers To Test")
 	flag.StringVar(&flagInstance.Output, "o", "", "Name Of File To Set Result in it")
 	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
 	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
 	flag.Parse()
 
-	// Create Output File
-	if flagInstance.Output != "" {
-		createFile(flagInstance.Output)
-	}
-
 	// Check Target
+	if !strings.HasPrefix(flagInstance.Target, "http://") && !strings.HasPrefix(flagInstance.Target, "https://") {
+		fmt.Println("Invalid Prefix For Target")
+		os.Exit(0)
+	}
 	if flagInstance.Target == "" {
 		fmt.Println("Invalid Target")
 		os.Exit(0)
 	}
 
-	if !strings.HasPrefix(flagInstance.Target, "http://") && !strings.HasPrefix(flagInstance.Target, "https://") {
-		fmt.Println("Invalid Prefix For Target")
-		os.Exit(0)
+	// Set Custom Headers
+	if flagInstance.CustomHeaders != "" {
+		parseCustomHeaders(flagInstance.CustomHeaders)
+	}
+
+	// Create Output File
+	if flagInstance.Output != "" {
+		createFile(flagInstance.Output)
 	}
 
 	banner()
