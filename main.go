@@ -170,6 +170,7 @@ func main() {
 			"SEARCH",
 			"UNLOCK",
 			"UNLINK",
+			"PURGE",
 			"MKCOL",
 			"REPOR",
 			"TRACK",
