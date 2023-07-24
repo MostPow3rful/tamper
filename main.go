@@ -280,13 +280,13 @@ func main() {
 	)
 
 	// Parse The User Flags
-	flag.StringVar(&flagInstance.IgnoreResponse, "fc", "", "Don't Match Response Code [use ',' To Split]")
-	flag.StringVar(&flagInstance.MatchResponse, "mc", "", "Match Response Code [use ',' To Split]")
-	flag.StringVar(&flagInstance.Target, "d", "", "URL Of Your Target Do You Want To Test")
-	flag.StringVar(&flagInstance.CustomHeaders, "h", "", "Set Custom Headers To Test")
-	flag.StringVar(&flagInstance.Output, "o", "", "Name Of File To Set Result in it")
-	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
-	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
+	flag.StringVar(&flagInstance.IgnoreResponse, "FC", "", "Don't Match Response Code [use ',' To Split]")
+	flag.StringVar(&flagInstance.MatchResponse, "MC", "", "Match Response Code [use ',' To Split]")
+	flag.StringVar(&flagInstance.Target, "D", "", "URL Of Your Target Do You Want To Test")
+	flag.StringVar(&flagInstance.CustomHeaders, "H", "", "Set Custom Headers To Test")
+	flag.StringVar(&flagInstance.Output, "O", "", "Name Of File To Set Result in it")
+	flag.StringVar(&flagInstance.Cookie, "C", "", "Set Value Of Cookie Header")
+	flag.BoolVar(&flagInstance.ExtraMethods, "X", false, "FUZZ Extra HTTP Methods")
 	flag.Parse()
 
 	// Check Target
