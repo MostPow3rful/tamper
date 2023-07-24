@@ -154,7 +154,7 @@ func main() {
 			"PUT",
 			"GET",
 		}
-		extraHttpMethods = [23]string{
+		extraHttpMethods = [24]string{
 			"VERSION-CONTROL",
 			"SHOWMETHOD",
 			"TEXTSEARCH",
@@ -170,6 +170,7 @@ func main() {
 			"SEARCH",
 			"UNLOCK",
 			"UNLINK",
+			"REPORT",
 			"PURGE",
 			"MKCOL",
 			"REPOR",
