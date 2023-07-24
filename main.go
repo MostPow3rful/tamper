@@ -21,9 +21,21 @@ type Flag struct {
 	ExtraMethods   bool
 }
 
-func tamper(_httpMethod string, _userFlags Flag) {
-	mc := !(_userFlags.MatchResponse == "")
-	fc := !(_userFlags.IgnoreResponse == "")
+var (
+	customHeaders = make(map[string]string, 0)
+	flagInstance  = Flag{
+		IgnoreResponse: "",
+		MatchResponse:  "",
+		Output:         "",
+		Target:         "",
+		Cookie:         "",
+		ExtraMethods:   false,
+	}
+)
+
+func tamper(_httpMethod string) {
+	mc := !(flagInstance.MatchResponse == "")
+	fc := !(flagInstance.IgnoreResponse == "")
 
 	// Create an instance Of http.Client Struct
 	client := http.Client{
@@ -31,18 +43,18 @@ func tamper(_httpMethod string, _userFlags Flag) {
 	}
 
 	// Creating Custom Request
-	request, err := http.NewRequest(_httpMethod, _userFlags.Target, nil)
+	request, err := http.NewRequest(_httpMethod, flagInstance.Target, nil)
 	if err != nil {
 		fmt.Printf(
 			"[%s] Couldn't Make Request [%s]\n",
-			_httpMethod, _userFlags.Target,
+			_httpMethod, flagInstance.Target,
 		)
 		return
 	}
 
 	// Set HTTP Headers
-	if _userFlags.Cookie != "" {
-		request.Header.Set("Cookie", _userFlags.Cookie)
+	if flagInstance.Cookie != "" {
+		request.Header.Set("Cookie", flagInstance.Cookie)
 	}
 	request.Header.Set("User-Agent", uarand.GetRandom())
 
@@ -51,7 +63,7 @@ func tamper(_httpMethod string, _userFlags Flag) {
 	if err != nil {
 		fmt.Printf(
 			"[%s] Couldn't Send Request [%s]\n",
-			_httpMethod, _userFlags.Target,
+			_httpMethod, flagInstance.Target,
 		)
 		return
 	}
@@ -60,14 +72,14 @@ func tamper(_httpMethod string, _userFlags Flag) {
 	defer response.Body.Close()
 
 	if fc {
-		if strings.Index(_userFlags.IgnoreResponse, ",") == -1 {
-			code, _ := strconv.Atoi(_userFlags.IgnoreResponse)
+		if strings.Index(flagInstance.IgnoreResponse, ",") == -1 {
+			code, _ := strconv.Atoi(flagInstance.IgnoreResponse)
 			if response.StatusCode == code {
 				return
 			}
 		}
 
-		for _, v := range strings.Split(_userFlags.IgnoreResponse, ",") {
+		for _, v := range strings.Split(flagInstance.IgnoreResponse, ",") {
 			code, _ := strconv.Atoi(v)
 			if response.StatusCode == code {
 				return
@@ -76,14 +88,14 @@ func tamper(_httpMethod string, _userFlags Flag) {
 	}
 
 	if mc {
-		if strings.Index(_userFlags.MatchResponse, ",") == -1 {
-			code, _ := strconv.Atoi(_userFlags.MatchResponse)
+		if strings.Index(flagInstance.MatchResponse, ",") == -1 {
+			code, _ := strconv.Atoi(flagInstance.MatchResponse)
 			if response.StatusCode != code {
 				return
 			}
 		}
 
-		for _, v := range strings.Split(_userFlags.MatchResponse, ",") {
+		for _, v := range strings.Split(flagInstance.MatchResponse, ",") {
 			code, _ := strconv.Atoi(v)
 			if response.StatusCode != code {
 				return
@@ -91,8 +103,8 @@ func tamper(_httpMethod string, _userFlags Flag) {
 		}
 	}
 
-	if _userFlags.Output != "" {
-		setResultInFile(_userFlags.Output, response.Status, _httpMethod, response.StatusCode)
+	if flagInstance.Output != "" {
+		setResultInFile(flagInstance.Output, response.Status, _httpMethod, response.StatusCode)
 		return
 	}
 	fmt.Printf("[%v] - [%d] - [%v]\n", _httpMethod, response.StatusCode, response.Status)
@@ -134,15 +146,7 @@ func banner() {
 func main() {
 	// Creating Variables
 	var (
-		wg           = sync.WaitGroup{}
-		flagInstance = Flag{
-			IgnoreResponse: "",
-			MatchResponse:  "",
-			Output:         "",
-			Target:         "",
-			Cookie:         "",
-			ExtraMethods:   false,
-		}
+		wg              = sync.WaitGroup{}
 		baseHttpMethods = [9]string{
 			"CONNECT",
 			"OPTIONS",
@@ -202,10 +206,10 @@ func main() {
 	// Parse The User Flags
 	flag.StringVar(&flagInstance.IgnoreResponse, "fc", "", "Don't Match Response Code [use ',' To Split]")
 	flag.StringVar(&flagInstance.MatchResponse, "mc", "", "Match Response Code [use ',' To Split]")
-	flag.StringVar(&flagInstance.Output, "o", "", "Name Of File To Set Result in it")
-	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
 	flag.StringVar(&flagInstance.Target, "d", "", "URL Of Your Target Do You Want To Test")
+	flag.StringVar(&flagInstance.Output, "o", "", "Name Of File To Set Result in it")
 	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
+	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
 	flag.Parse()
 
 	// Create Output File
@@ -230,7 +234,7 @@ func main() {
 	for _, httpMethod := range baseHttpMethods {
 		wg.Add(1)
 		go func(_httpMethod string) {
-			tamper(_httpMethod, flagInstance)
+			tamper(_httpMethod)
 			wg.Done()
 		}(httpMethod)
 	}
@@ -240,7 +244,7 @@ func main() {
 		for _, httpMethod := range extraHttpMethods {
 			wg.Add(1)
 			go func(_httpMethod string) {
-				tamper(_httpMethod, flagInstance)
+				tamper(_httpMethod)
 				wg.Done()
 			}(httpMethod)
 		}
