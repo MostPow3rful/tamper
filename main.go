@@ -17,6 +17,7 @@ type Flag struct {
 	IgnoreResponse string
 	MatchResponse  string
 	CustomHeaders  string
+	CustomMethods  string
 	Output         string
 	Target         string
 	Cookie         string
@@ -119,7 +120,7 @@ func tamper(_httpMethod string) {
 	fmt.Printf("[%v] - [%d] - [%v]\n", _httpMethod, response.StatusCode, response.Status)
 }
 
-func parseCustomHeaders(_fileName string) {
+func getFileContents(_fileName string) (lines []string) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Couldn't Get Output Of PWD Command")
@@ -137,8 +138,13 @@ func parseCustomHeaders(_fileName string) {
 	fileScanner.Split(bufio.ScanLines)
 
 	for fileScanner.Scan() {
-		line := fileScanner.Text()
+		lines = append(lines, fileScanner.Text())
+	}
+	return
+}
 
+func parseCustomHeaders(_fileName string) {
+	for _, line := range getFileContents(_fileName) {
 		if line == "" {
 			continue
 		}
@@ -181,7 +187,26 @@ func parseCustomHeaders(_fileName string) {
 			customHeaders[data[0]] = data[1]
 		}
 	}
+}
 
+func parseCustomMethods(_fileName string) (methods []string) {
+	for _, line := range getFileContents(_fileName) {
+		if line == "" {
+			continue
+		}
+
+		if strings.HasPrefix(line, " ") {
+			line = line[1:]
+		}
+
+		if strings.HasSuffix(line, " ") {
+			line = line[0:strings.LastIndex(line, " ")]
+		}
+
+		methods = append(methods, line)
+	}
+
+	return
 }
 
 func createFile(_fileName string) {
@@ -280,23 +305,23 @@ func main() {
 	)
 
 	// Parse The User Flags
-	flag.StringVar(&flagInstance.IgnoreResponse, "FC", "", "Don't Match Response Code [use ',' To Split]")
-	flag.StringVar(&flagInstance.MatchResponse, "MC", "", "Match Response Code [use ',' To Split]")
-	flag.StringVar(&flagInstance.Target, "D", "", "URL Of Your Target Do You Want To Test")
-	flag.StringVar(&flagInstance.CustomHeaders, "H", "", "Set Custom Headers To Test")
-	flag.StringVar(&flagInstance.Output, "O", "", "Name Of File To Set Result in it")
-	flag.StringVar(&flagInstance.Cookie, "C", "", "Set Value Of Cookie Header")
-	flag.BoolVar(&flagInstance.ExtraMethods, "X", false, "FUZZ Extra HTTP Methods")
+	flag.StringVar(&flagInstance.IgnoreResponse, "fc", "", "Don't Match Response Code [use ',' To Split]")
+	flag.StringVar(&flagInstance.MatchResponse, "mc", "", "Match Response Code [use ',' To Split]")
+	flag.StringVar(&flagInstance.CustomMethods, "cm", "", "Set Custom HTTP Methods To Test")
+	flag.StringVar(&flagInstance.Target, "d", "", "URL Of Your Target Do You Want To Test")
+	flag.StringVar(&flagInstance.CustomHeaders, "ch", "", "Set Custom Headers To Test")
+	flag.StringVar(&flagInstance.Output, "o", "", "Name Of File To Set Result in it")
+	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
+	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
 	flag.Parse()
 
 	// Check Target
-	if !strings.HasPrefix(flagInstance.Target, "http://") && !strings.HasPrefix(flagInstance.Target, "https://") {
-		fmt.Println("Invalid Prefix For Target")
-		os.Exit(0)
-	}
 	if flagInstance.Target == "" {
 		fmt.Println("Invalid Target")
 		os.Exit(0)
+	}
+	if !strings.HasPrefix(flagInstance.Target, "http://") && !strings.HasPrefix(flagInstance.Target, "https://") {
+		flagInstance.Target = "https://" + flagInstance.Target
 	}
 
 	// Set Custom Headers
@@ -312,22 +337,32 @@ func main() {
 	banner()
 
 	// Testing Base HTTP Methods
-	for _, httpMethod := range baseHttpMethods {
-		wg.Add(1)
-		go func(_httpMethod string) {
-			tamper(_httpMethod)
-			wg.Done()
-		}(httpMethod)
-	}
-
-	// Testing Extra HTTP Methods
-	if flagInstance.ExtraMethods {
-		for _, httpMethod := range extraHttpMethods {
+	if flagInstance.CustomMethods != "" {
+		for _, httpMethod := range parseCustomMethods(flagInstance.CustomMethods) {
 			wg.Add(1)
 			go func(_httpMethod string) {
 				tamper(_httpMethod)
 				wg.Done()
 			}(httpMethod)
+		}
+	} else {
+		for _, httpMethod := range baseHttpMethods {
+			wg.Add(1)
+			go func(_httpMethod string) {
+				tamper(_httpMethod)
+				wg.Done()
+			}(httpMethod)
+		}
+
+		// Testing Extra HTTP Methods
+		if flagInstance.ExtraMethods {
+			for _, httpMethod := range extraHttpMethods {
+				wg.Add(1)
+				go func(_httpMethod string) {
+					tamper(_httpMethod)
+					wg.Done()
+				}(httpMethod)
+			}
 		}
 	}
 
