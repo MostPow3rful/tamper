@@ -315,7 +315,7 @@ func main() {
 	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
 	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
 	flag.BoolVar(&flagInstance.Silent, "s", false, "Silent Mode [Don't Print Banner]")
-	flag.BoolVar(&flagInstance.IgnoreBadCertificate, "f", false, "Silent Mode [Don't Print Banner]")
+	flag.BoolVar(&flagInstance.IgnoreBadCertificate, "f", false, "Ignore SSL / Bad Certificate")
 	flag.Parse()
 
 	// Check Target
