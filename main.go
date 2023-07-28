@@ -21,20 +21,13 @@ type Flag struct {
 	Output         string
 	Target         string
 	Cookie         string
+	Silent         bool
 	ExtraMethods   bool
 }
 
 var (
 	customHeaders = make(map[string]string, 0)
-	flagInstance  = Flag{
-		IgnoreResponse: "",
-		MatchResponse:  "",
-		CustomHeaders:  "",
-		Output:         "",
-		Target:         "",
-		Cookie:         "",
-		ExtraMethods:   false,
-	}
+	flagInstance  = Flag{}
 )
 
 func tamper(_httpMethod string) {
@@ -120,7 +113,7 @@ func tamper(_httpMethod string) {
 	fmt.Printf("[%v] - [%d] - [%v]\n", _httpMethod, response.StatusCode, response.Status)
 }
 
-func getFileContents(_fileName string) (lines []string) {
+func getFileContent(_fileName string) (lines []string) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		fmt.Println("Couldn't Get Output Of PWD Command")
@@ -144,7 +137,7 @@ func getFileContents(_fileName string) (lines []string) {
 }
 
 func parseCustomHeaders(_fileName string) {
-	for _, line := range getFileContents(_fileName) {
+	for _, line := range getFileContent(_fileName) {
 		if line == "" {
 			continue
 		}
@@ -190,7 +183,7 @@ func parseCustomHeaders(_fileName string) {
 }
 
 func parseCustomMethods(_fileName string) (methods []string) {
-	for _, line := range getFileContents(_fileName) {
+	for _, line := range getFileContent(_fileName) {
 		if line == "" {
 			continue
 		}
@@ -313,6 +306,7 @@ func main() {
 	flag.StringVar(&flagInstance.Output, "o", "", "Name Of File To Set Result in it")
 	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
 	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
+	flag.BoolVar(&flagInstance.Silent, "s", false, "Silent Mode [Don't Print Banner]")
 	flag.Parse()
 
 	// Check Target
@@ -334,7 +328,9 @@ func main() {
 		createFile(flagInstance.Output)
 	}
 
-	banner()
+	if !flagInstance.Silent {
+		banner()
+	}
 
 	// Testing Base HTTP Methods
 	if flagInstance.CustomMethods != "" {
