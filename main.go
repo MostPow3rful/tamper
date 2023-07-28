@@ -50,7 +50,7 @@ func tamper(_httpMethod string) {
 	}
 
 	// Set HTTP Headers
-	for header, value := range customHeaders {
+	for header, value := range parseCustomHeaders(flagInstance.Output) {
 		request.Header.Set(header, value)
 	}
 	if flagInstance.Cookie != "" {
@@ -136,7 +136,7 @@ func getFileContent(_fileName string) (lines []string) {
 	return
 }
 
-func parseCustomHeaders(_fileName string) {
+func parseCustomHeaders(_fileName string) (headers map[string]string) {
 	for _, line := range getFileContent(_fileName) {
 		if line == "" {
 			continue
@@ -149,11 +149,11 @@ func parseCustomHeaders(_fileName string) {
 		// Empty Headers Only ?
 		if strings.Index(line, ":") == -1 {
 			if strings.HasSuffix(line, " ") {
-				customHeaders[line[0:strings.Index(line, " ")]] = "127.0.0.1"
+				headers[line[0:strings.Index(line, " ")]] = "127.0.0.1"
 				continue
 			}
 
-			customHeaders[line] = "127.0.0.1"
+			headers[line] = "127.0.0.1"
 			continue
 		}
 
@@ -177,9 +177,10 @@ func parseCustomHeaders(_fileName string) {
 			if strings.HasPrefix(data[1], " ") {
 				data[1] = data[1][strings.LastIndex(data[1], " ")+1:]
 			}
-			customHeaders[data[0]] = data[1]
+			headers[data[0]] = data[1]
 		}
 	}
+	return
 }
 
 func parseCustomMethods(_fileName string) (methods []string) {
@@ -318,11 +319,6 @@ func main() {
 		flagInstance.Target = "https://" + flagInstance.Target
 	}
 
-	// Set Custom Headers
-	if flagInstance.CustomHeaders != "" {
-		parseCustomHeaders(flagInstance.CustomHeaders)
-	}
-
 	// Create Output File
 	if flagInstance.Output != "" {
 		createFile(flagInstance.Output)
@@ -332,8 +328,8 @@ func main() {
 		banner()
 	}
 
-	// Testing Base HTTP Methods
 	if flagInstance.CustomMethods != "" {
+		// Testing Custom HTTP Methods
 		for _, httpMethod := range parseCustomMethods(flagInstance.CustomMethods) {
 			wg.Add(1)
 			go func(_httpMethod string) {
@@ -342,6 +338,7 @@ func main() {
 			}(httpMethod)
 		}
 	} else {
+		// Testing Base HTTP Methods
 		for _, httpMethod := range baseHttpMethods {
 			wg.Add(1)
 			go func(_httpMethod string) {
