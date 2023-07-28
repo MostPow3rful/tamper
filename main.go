@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/corpix/uarand"
@@ -14,15 +15,16 @@ import (
 )
 
 type Flag struct {
-	IgnoreResponse string
-	MatchResponse  string
-	CustomHeaders  string
-	CustomMethods  string
-	Output         string
-	Target         string
-	Cookie         string
-	Silent         bool
-	ExtraMethods   bool
+	IgnoreResponse       string
+	MatchResponse        string
+	CustomHeaders        string
+	CustomMethods        string
+	Output               string
+	Target               string
+	Cookie               string
+	Silent               bool
+	ExtraMethods         bool
+	IgnoreBadCertificate bool
 }
 
 var (
@@ -33,6 +35,11 @@ var (
 func tamper(_httpMethod string) {
 	mc := !(flagInstance.MatchResponse == "")
 	fc := !(flagInstance.IgnoreResponse == "")
+
+	// ignore Bad Certificate
+	if flagInstance.IgnoreBadCertificate {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	// Create an instance Of http.Client Struct
 	client := http.Client{
@@ -308,6 +315,7 @@ func main() {
 	flag.StringVar(&flagInstance.Cookie, "c", "", "Set Value Of Cookie Header")
 	flag.BoolVar(&flagInstance.ExtraMethods, "x", false, "FUZZ Extra HTTP Methods")
 	flag.BoolVar(&flagInstance.Silent, "s", false, "Silent Mode [Don't Print Banner]")
+	flag.BoolVar(&flagInstance.IgnoreBadCertificate, "f", false, "Silent Mode [Don't Print Banner]")
 	flag.Parse()
 
 	// Check Target
@@ -324,6 +332,7 @@ func main() {
 		createFile(flagInstance.Output)
 	}
 
+	// Print Banner
 	if !flagInstance.Silent {
 		banner()
 	}
